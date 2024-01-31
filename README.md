@@ -41,3 +41,5 @@ shared across subgroups
 ### Usage 
 
 All variables are scaled to have a global mean of 0 and a standard deviation of 1 before clustering.
+The code provided in BHMM.py contains the model and an example on how it should be run on a data set "data_pyro_men.csv" containing 10 cardiometabolic phenotypes and separated in 3 age groups. 
+This dataset was extracted from the publically available NHANES surveys and preprocessed as done in the following study: https://www.nature.com/articles/s44161-023-00391-y
