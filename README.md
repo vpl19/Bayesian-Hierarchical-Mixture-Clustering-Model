@@ -34,7 +34,7 @@ should be dependent on the difference between subgroup means yj and overall mean
 - Similar correlations between risk factors are expected across subgroups but not necessarily across clusters therefore the covariance matrix is cluster-specific but the
 shared across subgroups
 
-### Final Model Specification
+### Model Specification
 
 ![Model Equation](Model_specifications.png)
 
