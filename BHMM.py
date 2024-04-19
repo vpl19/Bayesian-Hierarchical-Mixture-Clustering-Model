@@ -112,6 +112,50 @@ def Model_HGMM(K, dimension, data, label, means):
             obs=data,
         )
 
+def Model_HGMM_diag_est(K=n_clusters, dimension=10, data=None, label=None):
+    l = len(np.unique(label))
+    means_ex2 = jnp.repeat(
+        means_ex[:, :], K, axis=1
+    )  # same prior for each cluster within age groups, thus the repeat
+    variance=numpyro.sample("variance", dist.HalfNormal(scale=1/n_clusters))
+    with numpyro.plate("components", K):
+        beta = numpyro.sample("beta", dist.Normal(0, 1)) 
+        locs = numpyro.sample(
+            "locs",
+            dist.MultivariateNormal(jnp.zeros(dimension), 10 * jnp.eye(dimension)),
+        )
+        corr_mat = numpyro.sample(
+            "corr_mat", dist.LKJ(dimension, concentration=1)
+        )
+    with numpyro.plate("Age group", l):
+        cluster_proba = numpyro.sample(
+            "cluster_proba", dist.Dirichlet(jnp.ones(K))
+        )
+    sigma = numpyro.deterministic(
+        "sigma", variance * corr_mat
+    )
+    beta_ex = jnp.expand_dims(
+    beta, axis=1)
+    beta_ex2 = jnp.repeat(
+    beta_ex,dimension ,axis=1
+)
+    locs_perturb_adjusted = numpyro.deterministic(
+        "locs_perturb_adjusted", locs + beta_ex2*means_ex2 ################################### Consider saving the beta_ex2*means_ex2 as locs perturb_adjusted to be able to post process like the rest
+    )  # regression on component center based on subgroup empirical means
+    with numpyro.plate("data", len(data)):
+        assignment = numpyro.sample(
+            "assignment",
+            dist.Categorical(cluster_proba[label]),
+            infer={"enumerate": "parallel"},
+        )
+        numpyro.sample(
+            "obs",
+            dist.MultivariateNormal(
+                locs_perturb_adjusted[label, assignment, :],
+                covariance_matrix=sigma[assignment],
+            ),
+            obs=data,
+        )
 
 def run_mcmc(model, men_data, men_label, means):
     """Run the MCMC algorithm for the defined model and perform posterior predictive checks."""
@@ -169,13 +213,14 @@ if __name__ == "__main__":
     # Define model parameters
     n_variables = 10
     n_clusters = 10
+    model=model_HGMM # can be changed to Model_HGMM_diag_est if wish to estimate the diagonal of the covariance matrix
     num_chains = (
-        50  # Adjust depending on parallelization method and ressources available
+        50  # Adjust depending on the parallelization method and resources available
     )
 
     # Run the model and perform posterior predictive checks
     posterior_samples, posterior_predictions = run_mcmc(
-        Model_HGMM, men_data, men_label, means
+        model, men_data, men_label, means
     )
 
     # Save results
