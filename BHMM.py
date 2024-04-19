@@ -71,7 +71,7 @@ def compute_group_means(data):
     return means.squeeze()
 
 
-def model_regression(K, dimension, data, label, means):
+def Model_HGMM(K, dimension, data, label, means):
     """Define the hierarchical model for regression."""
     # Expanded means to match the dimensionality required for the model
     means_expanded = jnp.expand_dims(means, axis=1)
@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     # Run the model and perform posterior predictive checks
     posterior_samples, posterior_predictions = run_mcmc(
-        model_regression, men_data, men_label, means
+        Model_HGMM, men_data, men_label, means
     )
 
     # Save results
