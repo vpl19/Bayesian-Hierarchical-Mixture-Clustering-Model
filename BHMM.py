@@ -72,7 +72,7 @@ def compute_group_means(data):
 
 
 def Model_HGMM(K, dimension, data, label, means):
-    """Define the hierarchical model for regression."""
+    """Define the hierarchical model."""
     # Expanded means to match the dimensionality required for the model
     means_expanded = jnp.expand_dims(means, axis=1)
     means_repeated = jnp.repeat(means_expanded, K, axis=1)
