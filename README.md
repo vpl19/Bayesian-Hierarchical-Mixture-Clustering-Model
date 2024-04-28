@@ -1,7 +1,20 @@
 # Bayesian Hierarchical Mixture Clustering Model
+
 Clustering model designed to find cardiometabolic phenotypes in different subgroups of a population.
 
-### Model Aims
+## TODO
+
+Problems with BHMM.py:
+
+- 50 chains???
+- Where do I get ".../data_pyro_men.csv"
+- test the script because you have the data
+- test the notebook because you have the notebook
+- where is n_clusters defined?
+- where is means_ex defined?
+- replace the stuff in the notebook with `from bhmm.BHMM import model_HGMM, run_mcmc` etc where possible
+
+## Model Aims
 
 This model was developed during my doctoral research at Imperial College London. 
 In the process of clustering multiple similar subgroups, two main strategies can be employed: clustering jointly and clustering separately. 
@@ -22,8 +35,7 @@ phenotypes and their prevalence should be able to differ moderately between subg
 - Because similar relationships between risk factors are expected across subgroups due to shared biological processes, the model should be able to borrow some of the
 shared information between subgroups.
 
-
-### Model Features and assumptions
+## Model Features and assumptions
 
 - There are similar cardiometabolic and renal phenotypes across subgroups with different prevalences, therefore the weights of the mixture will be both cluster and
 subgroup-specific.
@@ -34,14 +46,15 @@ should be dependent on the difference between subgroup means yj and overall mean
 - Similar correlations between risk factors are expected across subgroups but not necessarily across clusters therefore the covariance matrix is cluster-specific but the
 shared across subgroups
 
-### Model Specification
+## Model Specification
 
 ![Model Equation](Model_specifications.png)
 
-### Usage 
+## Usage
 
 All variables are scaled to have a global mean of 0 and a standard deviation of 1 before clustering.
-The code provided in BHMM.py contains the model and an example on how it should be run on a data set "data_pyro_men.csv" containing 10 cardiometabolic phenotypes and separated in 3 age groups. 
+The code provided in BHMM.py contains the model and an example on how it should be run on a data set "data_pyro_men.csv" containing 10 cardiometabolic phenotypes and separated in 3 age groups.
 This dataset was extracted from the publically available NHANES surveys and preprocessed as done in the following study: https://www.nature.com/articles/s44161-023-00391-y
 
 An example of the application of the model to simulated data is provided in the notebook: BHMM_simulated_bivariate_data.ipynb
+Run `pip install .` to install the required packages.
