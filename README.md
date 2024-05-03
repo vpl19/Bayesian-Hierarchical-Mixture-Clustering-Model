@@ -2,21 +2,33 @@
 
 Clustering model designed to find cardiometabolic phenotypes in different subgroups of a population.
 
-## TODO
 
-Problems with BHMM.py:
+## Reply TO DO
 
-- 50 chains???
-- Where do I get ".../data_pyro_men.csv"
-- test the script because you have the data
-- test the notebook because you have the notebook
-- where is n_clusters defined?
-- where is means_ex defined?
-- replace the stuff in the notebook with `from bhmm.BHMM import model_HGMM, run_mcmc` etc where possible
+- *50 chains???*
+    - I changed it to 2 chains for now, in the paper I used 50 chains because it was estimating a highly multimodal posterior
+- *Where do I get ".../data_pyro_men.csv"*
+    -I have added a subsample of the data, i can ask Majid if he is okay for us to add it here (the data is public but we have done some pre-processing to it, it is a big pain to publish the preprocessing scripty because it is done within NCD-risc framework and has loads that should be removed before publishing, the cleaning also has a stochastic element that can change the results by one or two individuals depending on the R version... But more importantly there would be no way for someone to run the code on a laptop on the full data, even for just one chain it would take ages. On top of that if we want to do it like the paper then there is the consensus clustering that is done in R, i should probably add the trace plots, (that I have done in R) as well to checl it converge etc. I have actually done a repo already with everything: https://github.com/vpl19/BHMM_HPC, but it is very ugly and I just did it so that Sarkaaj a new PhD student from Majid can reproduce what I did if needed as he will use the model)
+- *test the script because you have the data*
+    - Done, works but I have changed a few things on how the means are calculated and remove the if main=main and the run_mcmc funtion as I thought it was making things more complex than it should.
+- *test the notebook because you have the notebook*
+    - Done
+- *where is n_clusters defined?*
+    -Added, it is pre-specified in the model
+
+- *where is means_ex defined?*
+    -that was a mistake on my end. Changed it
+
+- *replace the stuff in the notebook with `from bhmm.BHMM import model_HGMM, run_mcmc` etc where possible*
+    -Because I removed the if main=main etc I haven't. I quite like the idea that both BHMM.py and the notebook work as stand alone. 
+    Alternative would be to have a separate script with the two models and import it in both BHMM.py and the notebook, or change again to mnain etc. 
+    Would be worth discussing quickly. 
+
+
+What is the liscence thing that you added, is that a standard thing?
 
 ## Model Aims
 
-This model was developed during my doctoral research at Imperial College London. 
 In the process of clustering multiple similar subgroups, two main strategies can be employed: clustering jointly and clustering separately. 
 Joint clustering involves the simultaneous analysis of all subgroups to identify common patterns or groups, effectively treating
 the combined data as a singular entity. In contrast, separate clustering entails analyzing each subgroup independently, without considering potential correlations or commonalities
