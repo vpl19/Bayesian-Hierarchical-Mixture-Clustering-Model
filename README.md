@@ -1,72 +1,125 @@
-# Bayesian Hierarchical Mixture Clustering Model
+# Bayesian hierarchical mixture model for subgroup-specific phenotypes
 
-Clustering model designed to find cardiometabolic phenotypes in different subgroups of a population.
+Implementation in [NumPyro](https://num.pyro.ai) of the clustering model from
+[Lhoste et al. (2026)](https://doi.org/10.1093/jrsssa/qnag109), with a worked example
+on simulated data. The model was developed to find anthropometric, cardiometabolic and
+renal phenotypes in different subgroups of a population. The script used for the
+analysis in the paper is in [`paper_analysis/`](paper_analysis/).
 
+## Aim
 
-## Reply TO DO
+When several similar subgroups of a population have to be clustered, the two obvious
+strategies both lose something. Clustering all subgroups jointly partitions the
+pooled individuals rather than finding a partition within each subgroup, so it
+cannot express how a phenotype differs from one subgroup to the next. Clustering
+each subgroup separately captures those specificities but produces partitions that
+are, at best, impractical to compare. This model sits in between the two: it finds
+phenotypes that can be matched one to one across subgroups, so they remain
+comparable, while letting their prevalence and their mean risk factor levels differ
+moderately between subgroups where the data suggest it, and borrowing the
+information that subgroups share because of common biological processes.
 
-- *50 chains???*
-    - I changed it to 2 chains for now, in the paper I used 50 chains because it was estimating a highly multimodal posterior
-- *Where do I get ".../data_pyro_men.csv"*
-    -I have added a subsample of the data, i can ask Majid if he is okay for us to add it here (the data is public but we have done some pre-processing to it, it is a big pain to publish the preprocessing scripty because it is done within NCD-risc framework and has loads that should be removed before publishing, the cleaning also has a stochastic element that can change the results by one or two individuals depending on the R version... But more importantly there would be no way for someone to run the code on a laptop on the full data, even for just one chain it would take ages. On top of that if we want to do it like the paper then there is the consensus clustering that is done in R, i should probably add the trace plots, (that I have done in R) as well to checl it converge etc. I have actually done a repo already with everything: https://github.com/vpl19/BHMM_HPC, but it is very ugly and I just did it so that Sarkaaj a new PhD student from Majid can reproduce what I did if needed as he will use the model)
-- *test the script because you have the data*
-    - Done, works but I have changed a few things on how the means are calculated and remove the if main=main and the run_mcmc funtion as I thought it was making things more complex than it should.
-- *test the notebook because you have the notebook*
-    - Done
-- *where is n_clusters defined?*
-    -Added, it is pre-specified in the model
+## The model
 
-- *where is means_ex defined?*
-    -that was a mistake on my end. Changed it
+Let $y_{ij}$ be the vector of risk factors of individual $i$ in subgroup $j$, with
+all variables standardised to a global mean of 0 and a standard deviation of 1, and
+let $\bar{y}_j$ be the empirical mean of subgroup $j$. For $K$ clusters,
 
-- *replace the stuff in the notebook with `from bhmm.BHMM import model_HGMM, run_mcmc` etc where possible*
-    -Because I removed the if main=main etc I haven't. I quite like the idea that both BHMM.py and the notebook work as stand alone. 
-    Alternative would be to have a separate script with the two models and import it in both BHMM.py and the notebook, or change again to mnain etc. 
-    Would be worth discussing quickly. 
+$$p(y_{ij}) = \sum_{k=1}^{K} w_{kj} \, \mathrm{N}\left(y_{ij} \mid \mu_k + \beta_k \bar{y}_j,\; V_k\right).$$
 
+The mixture weights $w_{kj}$ are both cluster- and subgroup-specific, so the same
+phenotype can be more or less prevalent in different subgroups. The cluster mean is
+a shared location $\mu_k$ plus a perturbation $\beta_k \bar{y}_j$, so a phenotype
+shifts with how far its subgroup sits from the population as a whole. The covariance
+$V_k$ is cluster-specific but shared across subgroups, reflecting the expectation
+that relationships between risk factors differ between phenotypes but not between
+subgroups.
 
-What is the liscence thing that you added, is that a standard thing?
+The priors are
 
-## Model Aims
+$$w_{\cdot j} \sim \mathrm{Dirichlet}(1, \ldots, 1), \qquad
+\mu_k \sim \mathrm{N}(0, 10 I), \qquad
+\beta_k \sim \mathrm{N}(0, 1), \qquad
+R_k \sim \mathrm{LKJ}(1),$$
 
-In the process of clustering multiple similar subgroups, two main strategies can be employed: clustering jointly and clustering separately. 
-Joint clustering involves the simultaneous analysis of all subgroups to identify common patterns or groups, effectively treating
-the combined data as a singular entity. In contrast, separate clustering entails analyzing each subgroup independently, without considering potential correlations or commonalities
-between them. While clustering jointly will aim at partitioning all individuals aggregated together rather than
-finding partitions within each group, clustering each subgroup separately captures the unique characteristics of each subgroup but comparison of the results is at best impractical. 
+where $R_k$ is a correlation matrix. In the main model the diagonal is fixed,
 
+$$V_k = R_k / K,$$
 
-The Bayesian Hierarchical Mixture Clustering Model I have developed here seeks an in-between of clustering separately and jointly. 
-This model can identify comparable phenotypes across subgroups while also capturing subgroup specificities. 
-Specifically the aim of this model are: 
+which keeps clusters of comparable size; in the paper's sensitivity analysis,
+estimating the diagonal led to one broad cluster absorbing most individuals and the
+others being nearly empty. That sensitivity analysis estimates a single shared
+diagonal,
 
-- To identify comparable phenotypes across multiple subgroups. To facilitate meaningful comparisons the model must identify analogous phenotypes across subgroups
-that can be matched one by one.
-- To capture subgroup specificities. Specifically, the characteristics of the identified
-phenotypes and their prevalence should be able to differ moderately between subgroups if suggested by the data while remaining comparable.
-- Because similar relationships between risk factors are expected across subgroups due to shared biological processes, the model should be able to borrow some of the
-shared information between subgroups.
+$$V_k = \sigma R_k, \qquad \sigma \sim \mathrm{HalfNormal}(1),$$
 
-## Model Features and assumptions
+available through the `estimate_diagonal=True` flag.
 
-- There are similar cardiometabolic and renal phenotypes across subgroups with different prevalences, therefore the weights of the mixture will be both cluster and
-subgroup-specific.
-- The same cardiometabolic and renal phenotype may have slightly different mean risk factor levels across subgroups, therefore cluster means are allowed to differ
-across subgroups by introducing a small perturbation that is added to shared global cluster means.
-- The more difference there is between a subgroup and the rest of the population the more difference we can expect on its phenotypes, therefore the perturbation 
-should be dependent on the difference between subgroup means yj and overall mean.
-- Similar correlations between risk factors are expected across subgroups but not necessarily across clusters therefore the covariance matrix is cluster-specific but the
-shared across subgroups
+The number of clusters $K$ is fixed in advance. The discrete cluster allocations are
+enumerated out, so the sampler only moves over the continuous parameters;
+allocations are recovered afterwards.
 
-## Model Specification
+## What's in this repository
 
-![Model Equation](Model_specifications.png)
+- [`bhmm/model.py`](bhmm/model.py): the model (`hierarchical_mixture_model`) and
+  helper functions to compute the subgroup means (`subgroup_means`), fit the model
+  with the NUTS sampler (`run_mcmc`) and recover the cluster allocations
+  (`posterior_allocations`, `allocation_probabilities`).
+- [`examples/simulated_example.ipynb`](examples/simulated_example.ipynb): a worked
+  example on simulated bivariate data with three subgroups and two clusters. It
+  simulates the data, fits the model and compares the estimated clusters with the
+  truth, and runs in a couple of minutes on a laptop. This is the best place to start.
+- [`paper_analysis/`](paper_analysis/): the script used for the analysis in the
+  paper, with notes on how to obtain the data (see below).
 
-## Usage
+## Installation
 
-All variables are scaled to have a global mean of 0 and a standard deviation of 1 before clustering.
-The code provided in BHMM.py contains the model and an example on how it should be run on a data set "data_pyro_men.csv" containing 10 cardiometabolic phenotypes and separated in 3 age groups.
-This dataset was extracted from the publically available NHANES surveys and preprocessed as done in the following study: https://www.nature.com/articles/s44161-023-00391-y
+Python 3.10 or newer.
 
-An example of the application of the model to simulated data is provided in the notebook: BHMM_simulated_bivariate_data.ipynb
-Run `pip install .` to install the required packages.
+```bash
+git clone https://github.com/vpl19/Bayesian-Hierarchical-Mixture-Clustering-Model.git
+cd Bayesian-Hierarchical-Mixture-Clustering-Model
+pip install -e ".[notebook]"
+```
+
+The `notebook` extra adds Jupyter, which is only needed to run the example. For the
+model alone, `pip install -e .` is enough.
+
+## The analysis in the paper
+
+The paper clusters men aged 20 and over in NHANES into 10 anthropometric,
+cardiometabolic and renal phenotypes across three age groups, using 10 risk factors.
+Because the posterior of a mixture that size is highly multimodal, it draws 50 chains
+and combines them into a single partition by consensus clustering, which takes
+several days on a high-performance cluster.
+
+The script that produced those chains, and notes on how to obtain the data, are in
+[`paper_analysis/`](paper_analysis/).
+
+## How to cite
+
+```bibtex
+@article{10.1093/jrsssa/qnag109,
+    author = {Lhoste, Victor P F and Fan, Yefeng and Bennett, James E and Filippi, Sarah and Paciorek, Christopher J and Wang, Junyang and Zhou, Bin and Rashid, Theo and Phelps, Nowell H and Ezzati, Majid},
+    title = {Hierarchical Bayesian mixture model for subgroup-specific cardiometabolic phenotypes},
+    journal = {Journal of the Royal Statistical Society Series A: Statistics in Society},
+    pages = {qnag109},
+    year = {2026},
+    month = {10},
+    issn = {0964-1998},
+    doi = {10.1093/jrsssa/qnag109},
+    url = {https://doi.org/10.1093/jrsssa/qnag109},
+}
+```
+
+## Use of AI tools
+
+This repository was tidied up in October 2026 with the help of Claude Code
+(Anthropic), an AI coding assistant, which was used to restructure the code and
+documentation. The model and methods are unchanged from those described in the paper,
+and all changes were reviewed by Victor Lhoste.
+
+## Acknowledgements
+
+Thanks to [Theo Rashid](https://github.com/theorashid) for his help implementing the
+model in NumPyro.
